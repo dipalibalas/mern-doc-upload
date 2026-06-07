@@ -1,6 +1,6 @@
 import ReactDOM from "react-dom/client";
 
-import { BrowserRouter }
+import { HashRouter }
 from "react-router-dom";
 
 import {
@@ -23,7 +23,7 @@ const queryClient =
 ReactDOM.createRoot(
   document.getElementById("root")
 ).render(
-  <BrowserRouter>
+  <HashRouter>
     <QueryClientProvider
       client={queryClient}
     >
@@ -33,5 +33,5 @@ ReactDOM.createRoot(
         </NotificationProvider>
       </AuthProvider>
     </QueryClientProvider>
-  </BrowserRouter>
+  </HashRouter>
 );
