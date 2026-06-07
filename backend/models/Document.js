@@ -9,7 +9,10 @@ const documentSchema = new mongoose.Schema(
 
     content: {
       type: Object,
-      default: {},
+      default: () => ({
+        type: "doc",
+        content: [{ type: "paragraph" }],
+      }),
     },
 
     owner: {

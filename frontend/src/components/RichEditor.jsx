@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
@@ -6,7 +7,10 @@ const ToolbarButton = ({ active, onClick, children, title }) => (
   <button
     type="button"
     title={title}
-    onClick={onClick}
+    onMouseDown={(event) => {
+      event.preventDefault();
+      onClick();
+    }}
     className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${
       active
         ? "bg-blue-600 text-white"
@@ -17,15 +21,26 @@ const ToolbarButton = ({ active, onClick, children, title }) => (
   </button>
 );
 
-export default function RichEditor({ content, onChange, editable = true }) {
+export default function RichEditor({
+  initialContent,
+  onChange,
+  editable = true,
+  resetKey,
+}) {
   const editor = useEditor({
     extensions: [StarterKit, Underline],
-    content,
+    content: initialContent,
     editable,
     onUpdate: ({ editor: currentEditor }) => {
       onChange(currentEditor.getJSON());
     },
   });
+
+  useEffect(() => {
+    if (!editor || initialContent == null) return;
+
+    editor.commands.setContent(initialContent, false);
+  }, [editor, resetKey]);
 
   if (!editor) return null;
 
@@ -115,7 +130,7 @@ export default function RichEditor({ content, onChange, editable = true }) {
 
       <EditorContent
         editor={editor}
-        className="min-h-[480px] p-5 prose prose-slate max-w-none text-left [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[440px]"
+        className="min-h-[480px] p-5 max-w-none text-left [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[440px]"
       />
     </div>
   );

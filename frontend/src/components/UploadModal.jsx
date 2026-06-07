@@ -12,6 +12,7 @@ export default function UploadModal({
   onClose,
   documentId = null,
   importIntoDocument = false,
+  onComplete,
 }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const navigate = useNavigate();
@@ -56,6 +57,7 @@ export default function UploadModal({
 
       setSelectedFile(null);
       onClose();
+      onComplete?.(data);
 
       if (!documentId && data?._id) {
         navigate(`/editor/${data._id}`);

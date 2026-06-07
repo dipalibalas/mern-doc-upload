@@ -24,7 +24,9 @@ exports.createDocument = async (req, res) => {
 
     const doc = await Document.create({
       title,
-      content: req.body.content || {},
+      content: req.body.content?.type === "doc"
+        ? req.body.content
+        : { type: "doc", content: [{ type: "paragraph" }] },
       owner: req.user.id,
     });
 
@@ -79,7 +81,9 @@ exports.updateDocument = async (req, res) => {
       }
       updates.title = title;
     }
-    if (req.body.content !== undefined) updates.content = req.body.content;
+    if (req.body.content !== undefined) {
+      updates.content = req.body.content;
+    }
     if (req.body.attachments !== undefined) {
       updates.attachments = req.body.attachments;
     }

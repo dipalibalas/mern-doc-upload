@@ -2,9 +2,9 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { FilePlus, Loader2 } from "lucide-react";
-import toast from "react-hot-toast";
 import api, { getErrorMessage } from "../api/axios";
 import { useAuth } from "../context/AuthContext";
+import { useNotification } from "../context/NotificationContext";
 import DocumentCard from "../components/DocumentCard";
 import CreateDocumentModal from "../components/CreateDocumentModal";
 import MainLayout from "../layouts/MainLayout";
@@ -16,6 +16,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { showNotification } = useNotification();
 
   const { data = [], isLoading, isError, error } = useQuery({
     queryKey: ["documents"],
@@ -45,12 +46,20 @@ export default function Dashboard() {
     },
     onSuccess: (doc) => {
       queryClient.invalidateQueries({ queryKey: ["documents"] });
-      toast.success("Document created");
+      showNotification({
+        type: "success",
+        title: "Document created",
+        message: `"${doc.title}" was created successfully.`,
+      });
       setCreateOpen(false);
       navigate(`/editor/${doc._id}`);
     },
     onError: (err) => {
-      toast.error(getErrorMessage(err, "Failed to create document"));
+      showNotification({
+        type: "error",
+        title: "Create failed",
+        message: getErrorMessage(err, "Failed to create document"),
+      });
     },
   });
 

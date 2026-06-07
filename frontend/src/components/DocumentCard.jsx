@@ -8,9 +8,9 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import toast from "react-hot-toast";
 import api, { getErrorMessage } from "../api/axios";
 import { useAuth } from "../context/AuthContext";
+import { useNotification } from "../context/NotificationContext";
 import ShareModal from "./ShareModal";
 
 const formatDate = (value) => {
@@ -26,6 +26,7 @@ const formatDate = (value) => {
 
 export default function DocumentCard({ doc }) {
   const { user } = useAuth();
+  const { showNotification } = useNotification();
   const queryClient = useQueryClient();
   const [menuOpen, setMenuOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -38,10 +39,18 @@ export default function DocumentCard({ doc }) {
     mutationFn: () => api.delete(`/documents/${doc._id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["documents"] });
-      toast.success("Document deleted");
+      showNotification({
+        type: "success",
+        title: "Document deleted",
+        message: `"${doc.title}" was removed successfully.`,
+      });
     },
     onError: (error) => {
-      toast.error(getErrorMessage(error, "Failed to delete document"));
+      showNotification({
+        type: "error",
+        title: "Delete failed",
+        message: getErrorMessage(error, "Failed to delete document"),
+      });
     },
   });
 
@@ -59,18 +68,64 @@ export default function DocumentCard({ doc }) {
     <>
       <div className="relative bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition group">
         <Link to={`/editor/${doc._id}`} className="block p-5">
-          <div className="flex justify-between items-start">
-            <FileText className="text-blue-600" size={22} />
+          <div className="flex justify-between items-start gap-2">
+            <FileText className="text-blue-600 shrink-0" size={22} />
 
-            <span
-              className={`text-xs font-medium px-2 py-1 rounded-full ${
-                isShared
-                  ? "bg-violet-100 text-violet-700"
-                  : "bg-emerald-100 text-emerald-700"
-              }`}
-            >
-              {isShared ? "Shared with me" : "Owned"}
-            </span>
+            <div className="flex items-center gap-1 shrink-0">
+              <span
+                className={`text-xs font-medium px-2 py-1 rounded-full ${
+                  isShared
+                    ? "bg-violet-100 text-violet-700"
+                    : "bg-emerald-100 text-emerald-700"
+                }`}
+              >
+                {isShared ? "Shared with me" : "Owned"}
+              </span>
+
+              {isOwner && (
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      setMenuOpen((open) => !open);
+                    }}
+                    className="p-1 rounded-md hover:bg-slate-100 text-slate-500"
+                    aria-label="Document options"
+                  >
+                    <MoreVertical size={18} />
+                  </button>
+
+                  {menuOpen && (
+                    <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-lg z-20 overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setMenuOpen(false);
+                          setShareOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                      >
+                        <Share2 size={16} />
+                        Share
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleDelete}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 size={16} />
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           <h3 className="mt-4 font-semibold text-lg text-slate-900 text-left line-clamp-2">
@@ -89,49 +144,6 @@ export default function DocumentCard({ doc }) {
             </p>
           )}
         </Link>
-
-        {isOwner && (
-          <div className="absolute top-4 right-4">
-            <button
-              type="button"
-              onClick={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                setMenuOpen((open) => !open);
-              }}
-              className="p-1.5 rounded-md hover:bg-slate-100 text-slate-500"
-            >
-              <MoreVertical size={18} />
-            </button>
-
-            {menuOpen && (
-              <div className="absolute right-0 mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-lg z-10 overflow-hidden">
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    setMenuOpen(false);
-                    setShareOpen(true);
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                >
-                  <Share2 size={16} />
-                  Share
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
-                >
-                  <Trash2 size={16} />
-                  Delete
-                </button>
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       <ShareModal

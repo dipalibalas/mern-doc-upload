@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   Loader2,
@@ -8,10 +8,10 @@ import {
   Share2,
   Upload,
 } from "lucide-react";
-import toast from "react-hot-toast";
 import api, { getErrorMessage } from "../api/axios";
 import { UPLOADS_URL } from "../utils/contact";
 import { useAuth } from "../context/AuthContext";
+import { useNotification } from "../context/NotificationContext";
 import RichEditor from "../components/RichEditor";
 import ShareModal from "../components/ShareModal";
 import UploadModal from "../components/UploadModal";
@@ -19,16 +19,29 @@ import MainLayout from "../layouts/MainLayout";
 
 const EMPTY_DOC = { type: "doc", content: [{ type: "paragraph" }] };
 
+const normalizeContent = (content) => {
+  if (content && typeof content === "object" && content.type === "doc") {
+    return content;
+  }
+
+  return EMPTY_DOC;
+};
+
 export default function Editor() {
   const { id } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const { showNotification } = useNotification();
   const queryClient = useQueryClient();
 
   const [title, setTitle] = useState("");
-  const [content, setContent] = useState(EMPTY_DOC);
+  const [editorResetKey, setEditorResetKey] = useState(0);
   const [shareOpen, setShareOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+
+  const contentRef = useRef(EMPTY_DOC);
+  const titleRef = useRef("");
 
   const { data: document, isLoading, isError, error } = useQuery({
     queryKey: ["document", id],
@@ -42,42 +55,68 @@ export default function Editor() {
   useEffect(() => {
     if (!document) return;
 
-    setTitle(document.title || "");
-    setContent(
-      document.content && Object.keys(document.content).length > 0
-        ? document.content
-        : EMPTY_DOC,
-    );
+    const normalized = normalizeContent(document.content);
+    const nextTitle = document.title || "";
+
+    setTitle(nextTitle);
+    titleRef.current = nextTitle;
+    contentRef.current = normalized;
     setIsDirty(false);
-  }, [document]);
+    setEditorResetKey((key) => key + 1);
+  }, [document?._id]);
 
   const ownerId = document?.owner?._id || document?.owner;
   const isOwner = ownerId?.toString() === user?._id?.toString();
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const res = await api.put(`/documents/${id}`, { title: title.trim(), content });
+      const res = await api.put(`/documents/${id}`, {
+        title: titleRef.current.trim(),
+        content: contentRef.current,
+      });
       return res.data;
     },
     onSuccess: (updated) => {
       queryClient.setQueryData(["document", id], updated);
       queryClient.invalidateQueries({ queryKey: ["documents"] });
       setIsDirty(false);
-      toast.success("Document saved");
+      showNotification({
+        type: "success",
+        title: "Document updated",
+        message: `"${updated.title}" was saved successfully.`,
+      });
+      navigate('/')
     },
     onError: (err) => {
-      toast.error(getErrorMessage(err, "Failed to save document"));
+      showNotification({
+        type: "error",
+        title: "Update failed",
+        message: getErrorMessage(err, "Failed to save document"),
+      });
     },
   });
 
   const handleTitleChange = (value) => {
     setTitle(value);
+    titleRef.current = value;
     setIsDirty(true);
   };
 
   const handleContentChange = (value) => {
-    setContent(value);
+    contentRef.current = value;
     setIsDirty(true);
+  };
+
+  const handleImportComplete = (updated) => {
+    if (updated?.content) {
+      const normalized = normalizeContent(updated.content);
+      contentRef.current = normalized;
+      queryClient.setQueryData(["document", id], updated);
+      setEditorResetKey((key) => key + 1);
+      setIsDirty(false);
+    } else {
+      queryClient.invalidateQueries({ queryKey: ["document", id] });
+    }
   };
 
   if (isLoading) {
@@ -109,6 +148,8 @@ export default function Editor() {
       </MainLayout>
     );
   }
+
+  const initialContent = normalizeContent(document.content);
 
   return (
     <MainLayout>
@@ -185,8 +226,8 @@ export default function Editor() {
         />
 
         <RichEditor
-          key={id}
-          content={content}
+          initialContent={initialContent}
+          resetKey={editorResetKey}
           onChange={handleContentChange}
         />
 
@@ -226,6 +267,7 @@ export default function Editor() {
           onClose={() => setUploadOpen(false)}
           documentId={id}
           importIntoDocument
+          onComplete={handleImportComplete}
         />
       </div>
     </MainLayout>

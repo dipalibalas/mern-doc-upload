@@ -15,6 +15,7 @@ import "./index.css";
 import {
   AuthProvider,
 } from "./context/AuthContext";
+import { NotificationProvider } from "./context/NotificationContext";
 
 const queryClient =
   new QueryClient();
@@ -27,7 +28,9 @@ ReactDOM.createRoot(
       client={queryClient}
     >
       <AuthProvider>
-        <App />
+        <NotificationProvider>
+          <App />
+        </NotificationProvider>
       </AuthProvider>
     </QueryClientProvider>
   </BrowserRouter>

@@ -1,37 +1,41 @@
-# DocuWrite — Full Stack Document App
+# DocuWrite
 
-A MERN-style document editor with rich text, file import, sharing, and persistent storage in MongoDB.
+DocuWrite is a simple document app. You can write and format text, upload files, save your work, and share documents with other users.
 
-## Features
+**Built with:** React (frontend), Express (backend), MongoDB (database)
 
-- **Documents**: Create, rename, edit, save, and reopen documents
-- **Rich text**: Bold, italic, underline, headings (H1–H3), bullet and numbered lists (TipTap)
-- **File import**: Upload `.txt`, `.md`, or `.docx` (max 5MB) to create a new document or import into an existing draft
-- **Sharing**: Document owners can share with registered users by email; owned vs shared documents are labeled in the UI
-- **Persistence**: Documents and sharing data stored in MongoDB; formatting preserved as TipTap JSON
+---
 
-## Quick start
+## What you need
 
-### Prerequisites
+- Node.js 18 or newer
+- MongoDB (local install or MongoDB Atlas)
+- npm (comes with Node.js)
 
-- Node.js 18+
-- MongoDB running locally or a MongoDB Atlas connection string
+---
 
-### 1. Backend
+## How to run locally
+
+### Step 1 — Backend
 
 ```bash
 cd backend
 cp .env.example .env
-# Edit .env with your MONGO_URL and JWT_SECRET
-
 npm install
-npm run seed    # optional: creates alice@example.com and bob@example.com (password123)
+npm run seed
 npm run dev
 ```
 
-API runs at `http://localhost:5000`.
+Open `backend/.env` and set:
 
-### 2. Frontend
+- `MONGO_URL` — your MongoDB connection string
+- `JWT_SECRET` — any long random string
+
+The API runs at **http://localhost:5000**
+
+### Step 2 — Frontend
+
+Open a new terminal:
 
 ```bash
 cd frontend
@@ -39,93 +43,74 @@ npm install
 npm run dev
 ```
 
-App runs at `http://localhost:5173`.
+The app opens at **http://localhost:5173**
 
-### Demo flow
+---
 
-1. Run `npm run seed` in `backend/`
-2. Sign in as `alice@example.com` / `password123`
-3. Create a document or import a `.txt` / `.md` / `.docx` file
-4. Share it with `bob@example.com`
-5. Sign in as Bob to see the document under **Shared with me**
+## Demo login
 
-## Supported file types
+After running `npm run seed` in the backend folder:
 
-| Format | Behavior |
-|--------|----------|
-| `.txt` | Plain text converted to editable paragraphs |
-| `.md` | Treated as plain text (not rendered as Markdown) |
-| `.docx` | Text extracted via Mammoth and converted to paragraphs |
+| Email | Password |
+|-------|----------|
+| alice@example.com | password123 |
+| bob@example.com | password123 |
 
-Files larger than 5MB are rejected.
+---
 
-## API overview
+## Try it out
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/register` | Create account |
-| POST | `/api/auth/login` | Sign in |
-| GET | `/api/documents` | List owned + shared documents |
-| POST | `/api/documents` | Create document |
-| GET | `/api/documents/:id` | Fetch single document |
-| PUT | `/api/documents/:id` | Update title/content |
-| DELETE | `/api/documents/:id` | Delete (owner only) |
-| POST | `/api/documents/:id/share` | Share with user by email |
-| POST | `/api/documents/import` | Import file as new document |
-| POST | `/api/documents/:id/attach` | Attach file; optionally import content |
-| GET | `/uploads/:filename` | Download uploaded attachments |
+1. Log in as Alice
+2. Click **New document** or **Import file** in the sidebar
+3. Write something, use bold/lists/headings, then click **Save changes**
+4. Share a document with `bob@example.com` using the three-dot menu
+5. Log in as Bob and check **Shared with me** in the sidebar
 
-## Tests
+---
 
-```bash
-cd backend
-npm test
-```
+## What the app can do
 
-Includes unit tests for the text-to-editor content parser.
+- Create, edit, rename, save, and delete documents
+- Rich text: bold, italic, underline, headings, bullet lists, numbered lists
+- Upload `.txt`, `.md`, or `.docx` files (max 5 MB)
+- Share documents with other registered users
+- Show a full-screen notification when you create, update, or delete a document
+- Keep your work after refreshing the page
 
-## Architecture note
+**Upload notes:**
+- `.txt` and `.md` — text is added as editable paragraphs
+- `.docx` — text is extracted (formatting is not kept)
 
-**Priorities**
+---
 
-1. **End-to-end document flow** — Login, list, create, load by ID, save, and reopen were wired first so reviewers can exercise the core product immediately.
-2. **Pragmatic sharing** — Owner-based sharing by email with visible owned/shared labels; no complex ACLs, but duplicate shares and self-share are blocked.
-3. **File import over fidelity** — TXT/MD/DOCX are normalized to TipTap JSON so imported content is editable in the same editor; DOCX styling is not preserved.
-4. **Thin backend, cohesive frontend** — Express REST API with JWT auth; React Query for server state, TipTap for editing, toast feedback for errors.
+## Useful commands
 
-**Trade-offs**
+| What | Command | Where |
+|------|---------|-------|
+| Start backend | `npm run dev` | `backend/` |
+| Start frontend | `npm run dev` | `frontend/` |
+| Add demo users | `npm run seed` | `backend/` |
+| Run tests | `npm test` | `backend/` |
+| Build frontend | `npm run build` | `frontend/` |
 
-- Shared users receive edit access only (permission field exists but is not exposed in UI).
-- Attachments are stored on disk with filenames on the document; no cloud storage.
-- No real-time collaboration; last save wins.
+---
 
-## Deployment
-
-Deploy backend and frontend separately:
-
-- **Backend**: Set `MONGO_URL`, `JWT_SECRET`, `CLIENT_URL` (frontend URL), and `PORT`. Ensure the `uploads/` directory is writable.
-- **Frontend**: Set `VITE_API_URL` to your API base (e.g. `https://api.example.com/api`).
-
-Example frontend env:
+## Project folders
 
 ```
-VITE_API_URL=https://your-api.example.com/api
-VITE_UPLOADS_URL=https://your-api.example.com/uploads
+MERN-docs-app/
+├── backend/     → API, database models, file uploads
+├── frontend/    → React app, editor, pages
+├── README.md
+├── ARCHITECTURE.md
+├── AI_WORKFLOW.md
+└── SUBMISSION.md
 ```
 
-## Project structure
+---
 
-```
-backend/
-  controllers/   # auth, documents, upload
-  models/        # User, Document
-  middleware/    # JWT auth, multer upload
-  utils/         # access control, file parsing
-  tests/         # automated tests
-frontend/
-  src/
-    api/         # axios client
-    components/  # editor, modals, cards, sidebar
-    pages/       # login, dashboard, editor
-    context/     # auth state
-```
+## Other docs
+
+- [ARCHITECTURE.md](./ARCHITECTURE.md) — how the app is built
+- [AI_WORKFLOW.md](./AI_WORKFLOW.md) — how AI was used during development
+- [SUBMISSION.md](./SUBMISSION.md) — full list of what is included
